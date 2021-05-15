@@ -1,0 +1,15 @@
+
+
+{% extends "base.html" %}
+{% block content %}
+<h1>Updated posts by {{username}}</h1>
+{% for post in posts %}
+    <h2>{{ post.title }}</h2>
+        <div class="post-body">
+            {{post.text}}
+        </div>
+        <div class="modified_date">
+            Last modified: {{ post.modified_date}}
+        </div>
+{% endfor %}
+{% endblock %}
