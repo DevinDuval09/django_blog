@@ -2,3 +2,4 @@ blog_env/
 *.pyc
 *.db
 *.sqlite3
+*.zip
