@@ -12,3 +12,15 @@ class Post(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class Category(models.Model):
+    name = models.CharField(max_length=128)
+    description = models.TextField(blank=True)
+    posts = models.ManyToManyField(Post, related_name='categories', blank=True)
+
+    def __str__(self):
+        return self.name
+    
+    def post_titles(self):
+        return [post.title for post in self.posts.all()]
