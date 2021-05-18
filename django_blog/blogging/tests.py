@@ -1,3 +1,4 @@
+import datetime
 from .models import Post, Category
 from django.test import TestCase, TransactionTestCase, LiveServerTestCase
 from django.db.transaction import TransactionManagementError
@@ -5,6 +6,7 @@ from django.contrib.auth.models import User
 from django.test import Client
 from .views import update_user_posts
 from django.http import HttpRequest
+from django.utils.timezone import utc
 
 class PostTestCase(TestCase):
     fixtures = ['blogging_test_fixture.json']
@@ -68,6 +70,44 @@ class TestCategoryCase(TestCase):
         test_list = self.category.post_titles()
         for post in self.posts:
             self.assertIn(post.title, test_list)
+
+class FrontEndTestCase(TestCase):
+    
+    fixtures = ['blogging_test_fixture.json',]
+    def setUp(self):
+        self.now = datetime.datetime.utcnow().replace(tzinfo=utc)
+        self.timedelta = datetime.timedelta(15)
+        author = User.objects.get(pk=1)
+        for count in range(1, 11):
+            post = Post(title=f'Post {count} Title',
+                        text='foo',
+                        author=author)
+            if count < 6:
+                pubdate = self.now - self.timedelta * count
+                post.post_date = pubdate
+            post.save()
+    
+    def test_list_only_published(self):
+        resp = self.client.get('/')
+        resp_text = resp.content.decode(resp.charset)
+        self.assertTrue("Recent Posts" in resp_text)
+        for count in range(1, 11):
+            title = f"Post {count} Title"
+            if count < 6:
+                self.assertContains(resp, title, count=1)
+            else:
+                self.assertNotContains(resp, title)
+
+    def test_detail_only_published(self):
+        for count in range(1, 11):
+            title = f'Post {count} Title'
+            post = Post.objects.get(title=title)
+            resp = self.client.get(f'/posts/{post.pk}/')
+            if count < 6:
+                self.assertEqual(resp.status_code, 200)
+                self.assertContains(resp, title)
+            else:
+                self.assertEqual(resp.status_code, 404)
 
     
 

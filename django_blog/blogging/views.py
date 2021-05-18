@@ -1,16 +1,33 @@
+from django.http.response import HttpResponse
 from django.shortcuts import render
 from django.http import Http404
 from .models import Post
 from django.db import transaction
+from django.template import loader
+
+def stub_view(request, *args, **kwargs):
+    body = "Stub View\n\n"
+    if args:
+        body += "Args:\n"
+        body += "\n".join([f'\t{arg}' for arg in args])
+    if kwargs:
+        body += "Kwargs:\n"
+        body += '\n'.join([f'\t{key}: {value}' for key, value in kwargs.items()])
+    return HttpResponse(body, content_type='text/plain')
 
 def list_view(request):
-    context = {'posts': Post.objects.all()}
-    return render(request, 'blogging/list.html', context)
+    published = Post.objects.exclude(post_date__exact=None)
+    posts = published.order_by('-post_date')
+    template = loader.get_template('blogging/list.html')
+    context = {'posts': posts}
+    body = template.render(context)
+    return HttpResponse(body, content_type='text/html')
 
 
 def detail_view(request, post_id):
+    published = Post.objects.exclude(post_date__exact = None)
     try:
-        post = Post.objects.get(pk=post_id)
+        post = published.get(pk=post_id)
     except Post.DoesNotExist:
         raise Http404
     
