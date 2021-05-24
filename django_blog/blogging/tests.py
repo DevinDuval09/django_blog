@@ -4,7 +4,6 @@ from django.test import TestCase, TransactionTestCase, LiveServerTestCase
 from django.db.transaction import TransactionManagementError
 from django.contrib.auth.models import User
 from django.test import Client
-from .views import update_user_posts
 from django.http import HttpRequest
 from django.utils.timezone import utc
 
@@ -86,6 +85,12 @@ class FrontEndTestCase(TestCase):
                 pubdate = self.now - self.timedelta * count
                 post.post_date = pubdate
             post.save()
+        count = 11
+        xss_attack = Post(title=f'Post {count} Title',
+                          text='foo <script> alert("This was successful!"); </script>',
+                          author=author,
+                          post_date = self.now - self.timedelta * count)
+        xss_attack.save()
     
     def test_list_only_published(self):
         resp = self.client.get('/')
@@ -108,6 +113,12 @@ class FrontEndTestCase(TestCase):
                 self.assertContains(resp, title)
             else:
                 self.assertEqual(resp.status_code, 404)
+    
+    def test_xss_attack(self):
+        pk = 11
+        resp = self.client.get(f'/posts/{pk}/')
+        #print(resp.getvalue())
+        self.assertContains(resp, '&lt;script&gt;')
 
     
 

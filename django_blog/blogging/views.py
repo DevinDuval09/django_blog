@@ -1,9 +1,12 @@
+from django.db.models.query import QuerySet
 from django.http.response import HttpResponse
 from django.shortcuts import render
 from django.http import Http404
 from .models import Post
 from django.db import transaction
 from django.template import loader
+from django.views.generic.list import ListView
+from django.views.generic.detail import DetailView
 
 def stub_view(request, *args, **kwargs):
     body = "Stub View\n\n"
@@ -15,45 +18,21 @@ def stub_view(request, *args, **kwargs):
         body += '\n'.join([f'\t{key}: {value}' for key, value in kwargs.items()])
     return HttpResponse(body, content_type='text/plain')
 
-def list_view(request):
-    published = Post.objects.exclude(post_date__exact=None)
-    posts = published.order_by('-post_date')
-    template = loader.get_template('blogging/list.html')
-    context = {'posts': posts}
-    body = template.render(context)
-    return HttpResponse(body, content_type='text/html')
+
+class PostListAllView(ListView):
+    model = Post
+    template_name = 'blogging/list.html'
 
 
-def detail_view(request, post_id):
-    published = Post.objects.exclude(post_date__exact = None)
-    try:
-        post = published.get(pk=post_id)
-    except Post.DoesNotExist:
-        raise Http404
-    
-    context = {'post': post}
-    return render(request, 'blogging/detail.html', context)
+class PostPostedList(ListView):
+    queryset = Post.objects.exclude(post_date=None).order_by('-post_date')
+    template_name = 'blogging/list.html'
 
-def user_view(request, username):
-    
-    posts = Post.objects.all().filter(author__username=username)
-    
-    context = {'posts': posts}
-    print(context)
-    return render(request, 'blogging/list.html', context)
 
-def update_user_posts(request, username, text):
-    #print(request)
-    posts = Post.objects.all().select_for_update().filter(author__username=username)
-    with transaction.atomic():
-        try:
-            assert len(posts) > 0
-            for post in posts:
-                post.text = text
-                post.save()
-        except AssertionError:
-            raise transaction.TransactionManagementError(f'{username} does not have any posts.')
-    
-    context = {'posts': posts, 'username': username}
-    return render(request, 'blogging/detail_list.html', context)
+class PostDetail(DetailView):
+    queryset = Post.objects.exclude(post_date=None)
+    template_name = 'blogging/detail.html'
+
+            
+
 

@@ -3,7 +3,7 @@
 {% block content %}
 <h1>Recent Posts</h1>
 {% comment %}{% endcomment %}
-{% for post in posts %}
+{% for post in object_list %}
     <div class="post">
         <h2>
             <a href="{% url 'post_detail' post.pk %}">{{post}}</a>
