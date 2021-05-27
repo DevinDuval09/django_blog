@@ -1,4 +1,6 @@
 import datetime
+
+from django.db.models.query import FlatValuesListIterable
 from .models import Post, Category
 from django.test import TestCase, TransactionTestCase, LiveServerTestCase
 from django.db.transaction import TransactionManagementError
@@ -117,38 +119,21 @@ class FrontEndTestCase(TestCase):
     def test_xss_attack(self):
         pk = 11
         resp = self.client.get(f'/posts/{pk}/')
-        #print(resp.getvalue())
         self.assertContains(resp, '&lt;script&gt;')
-
     
-
-# class PostTransactionTestCase(TransactionTestCase):
-#     fixtures = ['blogging_test_fixture.json']
-
-#     def setUp(self):
-#         self.user = User.objects.get(pk=1)
-#         self.otheruser = User.objects.get(pk=2)
-#         p1 = Post(title='This is a title', text='first', author=self.user)
-#         p2 = Post(title='This is another title', text='second', author=self.user)
-#         p3 = Post(title='This is a third title', text='third', author=self.user)
-#         p4 = Post(title='Excluded from update', text='fourth', author=self.otheruser)
-#         self.posts = [p1, p2, p3, p4]
-#         for post in self.posts:
-#             post.save()
-#         self.p1 = Post.objects.create(title='This is a title', text='first', author=self.user)
+    def test_generic_sorted_list_sort_date(self):
+        url = '/posts/exclude/post_date__gt/2021-01-01/'
+        resp = self.client.get(url)
+        self.assertEqual(resp.content.decode().count('None'), 5) #should be 5 posts with no post_date from setUp
     
-#     def test_update_user_posts(self):
-#         # self.assertEqual(self.posts[1].text, 'second')
-#         # request = HttpRequest()
-#         # request.method = 'GET'
-#         # request.path = '/posts/admin/test'
-#         # response = update_user_posts(request, 'admin', 'test')
-#         # #print(response.content)
-#         # self.assertNotIn(b'Excluded from update', response.content)
-#         # self.assertNotIn(b'second', response.content)
-#         # self.assertIn(b'test', response.content)
-#         # request.path = '/posts/bob/test'
-#         # self.assertRaises(TransactionManagementError, update_user_posts, request, 'bob', 'test')
-#         with self.assertRaises(TransactionManagementError):
-#             posts = Post.objects.select_for_update().filter()
-#             print(posts)
+    def test_generic_sorted_list_number(self):
+        url = '/posts/filter/title__contains/1/'
+        resp = self.client.get(url)
+        for x in (1, 10, 11): #Posts that contain 1 from setUp
+            self.assertContains(resp, f'Post {x} Title')
+    
+    def test_generic_sorted_list_letters(self):
+        url = '/posts/filter/text__contains/foo/'
+        resp = self.client.get(url)
+        for x in range(1, 12):
+            self.assertContains(resp, f'Post {x} Title')
