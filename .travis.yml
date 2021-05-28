@@ -3,7 +3,7 @@ python:
   - "3.9.1"
 install:
   - pip install -r requirements.txt
-  - python ./django_blog/manage.py migrate
+  - python manage.py migrate
 script:
   - black --check django_blog
-  - python ./django_blog/manage.py test
+  - python manage.py test
