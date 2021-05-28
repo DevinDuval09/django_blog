@@ -6,4 +6,4 @@ install:
   - python ./django_blog/manage.py migrate
 script:
   - black --check django_blog
-  - python ./django_blog/manage.py test blogging
+  - python ./django_blog/manage.py test
