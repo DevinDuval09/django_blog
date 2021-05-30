@@ -19,6 +19,7 @@ class PostAdmin(admin.ModelAdmin):
 class CommentAdmin(admin.ModelAdmin):
     list_display = ["post", "author", "text", "created_time"]
     ordering = ["-created_time"]
+    exclude = ["post"]
 
 
 class CategoryAdmin(admin.ModelAdmin):
