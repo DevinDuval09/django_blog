@@ -1,13 +1,15 @@
 from django.db.models import query
 from django.db.models.query import QuerySet
 from django.http.response import HttpResponse
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.http import Http404
 from .models import Post
 from django.db import transaction
 from django.template import loader
+from django.utils import timezone
 from django.views.generic.list import ListView
 from django.views.generic.detail import DetailView
+from .forms import CommentForm
 
 
 def stub_view(request, *args, **kwargs):
@@ -19,6 +21,21 @@ def stub_view(request, *args, **kwargs):
         body += "Kwargs:\n"
         body += "\n".join([f"\t{tup}" for tup in kwargs.items()])
     return HttpResponse(body, content_type="text/plain")
+
+
+def add_comment(request, **kwargs):
+    form = CommentForm(request.POST)
+    if form.is_valid():
+        model_instance = form.save(commit=False)
+        model_instance.save()
+        return redirect("/")
+    else:
+        form = CommentForm(initial={"post": kwargs["pk"], "author": request.user})
+        return render(
+            request,
+            "blogging/comment.html",
+            {"form": form, "post": Post.objects.get(pk=kwargs["pk"])},
+        )
 
 
 class PostListAllView(ListView):

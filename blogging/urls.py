@@ -7,11 +7,13 @@ from .views import (
     PostUserList,
     PostUserPublishedList,
     GenericSortedList,
+    add_comment,
 )
 
 urlpatterns = [
     path("", PostPostedList.as_view(), name="post_index"),
     path("posts/<int:pk>/", PostDetail.as_view(), name="post_detail"),
+    path("posts/<int:pk>/add_comment", add_comment, name="add_comment"),
     path("posts/<str:username>/", PostUserList.as_view(), name="post_user"),
     path(
         "posts/<str:username>/published/",
