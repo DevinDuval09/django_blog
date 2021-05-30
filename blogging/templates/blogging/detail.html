@@ -14,4 +14,10 @@
     <li>{{ category }}</li>
     {% endfor %}
 </ul>
+<ul class="comments">
+    {% for comment in post.comments.all %}
+    <li> {{ comment }} </li>
+    {% endfor %}
+</ul>
+<a class="add_comment" href="{% url 'add_comment' post.pk %}">Add comment</a>
 {% endblock %}
