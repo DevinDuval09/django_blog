@@ -38,7 +38,8 @@ class PostTestCase(TestCase):
     def test_comment_str(self):
         for comment in self.comments:
             post = comment.post
-            self.assertIn(f"'{post.title[0:15]}'...", str(comment))
+            username = comment.author.username
+            self.assertEqual(f"{username}: {comment.text}", str(comment))
             self.assertIn(post, self.posts)
 
     def test_add_multiple_comments(self):
