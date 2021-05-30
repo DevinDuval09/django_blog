@@ -2,15 +2,22 @@ from django.contrib import admin
 from .models import Category, Comment, Post
 
 
+class CommentInline(admin.TabularInline):
+    model = Comment
+
 class CategoryInline(admin.TabularInline):
     model = Category.posts.through
 
 
 class PostAdmin(admin.ModelAdmin):
     list_display = ["id", "title", "text", "post_date"]
-    inlines = [CategoryInline]
+    inlines = [CategoryInline, CommentInline]
     ordering = ["title"]
 
+
+class CommentAdmin(admin.ModelAdmin):
+    list_display = ['author', 'text', 'created_time']
+    ordering = ['-created_time']
 
 class CategoryAdmin(admin.ModelAdmin):
     list_display = ["name", "description"]
