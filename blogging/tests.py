@@ -1,7 +1,7 @@
 import datetime
 
 from django.db.models.query import FlatValuesListIterable
-from .models import Post, Category
+from .models import Post, Category, Comment
 from django.test import TestCase, TransactionTestCase, LiveServerTestCase
 from django.db.transaction import TransactionManagementError
 from django.contrib.auth.models import User
@@ -21,30 +21,41 @@ class PostTestCase(TestCase):
         p3 = Post(title="This is a third title", text="third", author=self.user)
         p4 = Post(title="Excluded from update", text="fourth", author=self.otheruser)
         self.posts = [p1, p2, p3, p4]
+        self.comments = []
         for post in self.posts:
             post.save()
+            comment = Comment(post=post, author=post.author, text=f'{post.title} comment.')
+            comment.save()
+            self.comments.append(comment)
 
     def test_string_repr(self):
         expected = "This is a title"
         actual = str(self.posts[0])
         self.assertEqual(expected, actual)
 
-    def test_update_user_posts(self):
-        # self.assertEqual(self.posts[1].text, 'second')
-        # request = HttpRequest()
-        # request.method = 'GET'
-        # request.path = '/posts/admin/test'
-        # response = update_user_posts(request, 'admin', 'test')
-        # #print(response.content)
-        # self.assertNotIn(b'Excluded from update', response.content)
-        # self.assertNotIn(b'second', response.content)
-        # self.assertIn(b'test', response.content)
-        # request.path = '/posts/bob/test'
-        # self.assertRaises(TransactionManagementError, update_user_posts, request, 'bob', 'test')
-        # with self.assertRaises(TransactionManagementError):
-        #     posts = Post.objects.select_for_update().filter()
-        #     print(posts)
-        pass
+    def test_comment_str(self):
+        for comment in self.comments:
+            post = comment.post
+            self.assertIn(f"'{post.title[0:15]}'...", str(comment))
+            self.assertIn(post, self.posts)
+    
+    def test_add_multiple_comments(self):
+        for post in self.posts:
+            comment = Comment(post=post, author=self.user, text=f'another comment by {self.user.username}')
+            comment.save()
+            self.comments.append(comment)
+            another_comment = Comment(post=post, author=self.otheruser, text=f'another comment by {self.otheruser.username}')
+            another_comment.save()
+            self.comments.append(another_comment)
+        
+        test_list = [comment.post for comment in Comment.objects.all()]
+        for post in self.posts:
+            count = 0
+            for comment_post in test_list:
+                if post == comment_post:
+                    count += 1
+            self.assertEqual(count, 3)
+        
 
 
 class TestCategoryCase(TestCase):
