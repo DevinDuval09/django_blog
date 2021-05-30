@@ -105,12 +105,17 @@ class FrontEndTestCase(TestCase):
         self.now = datetime.datetime.utcnow().replace(tzinfo=utc)
         self.timedelta = datetime.timedelta(15)
         author = User.objects.get(pk=1)
+        author2 = User.objects.get(pk=2)
         for count in range(1, 11):
             post = Post(title=f"Post {count} Title", text="foo", author=author)
             if count < 6:
                 pubdate = self.now - self.timedelta * count
                 post.post_date = pubdate
+                comment1 = Comment(post=post, author=author, text="comment 1")
+                comment2 = Comment(post=post, author=author2, text="comment 2")
             post.save()
+            comment1.save()
+            comment2.save()
         count = 11
         xss_attack = Post(
             title=f"Post {count} Title",
@@ -141,6 +146,14 @@ class FrontEndTestCase(TestCase):
                 self.assertContains(resp, title)
             else:
                 self.assertEqual(resp.status_code, 404)
+
+    def test_comments(self):
+        author = User.objects.get(pk=1)
+        author2 = User.objects.get(pk=2)
+        for count in range(1, 6):
+            resp = self.client.get(f"/posts/{count}/")
+            self.assertContains(resp, f"{author.username}: comment 1")
+            self.assertContains(resp, f"{author2.username}: comment 2")
 
     def test_xss_attack(self):
         pk = 11
