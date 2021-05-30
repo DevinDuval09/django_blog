@@ -24,7 +24,9 @@ class PostTestCase(TestCase):
         self.comments = []
         for post in self.posts:
             post.save()
-            comment = Comment(post=post, author=post.author, text=f'{post.title} comment.')
+            comment = Comment(
+                post=post, author=post.author, text=f"{post.title} comment."
+            )
             comment.save()
             self.comments.append(comment)
 
@@ -38,16 +40,24 @@ class PostTestCase(TestCase):
             post = comment.post
             self.assertIn(f"'{post.title[0:15]}'...", str(comment))
             self.assertIn(post, self.posts)
-    
+
     def test_add_multiple_comments(self):
         for post in self.posts:
-            comment = Comment(post=post, author=self.user, text=f'another comment by {self.user.username}')
+            comment = Comment(
+                post=post,
+                author=self.user,
+                text=f"another comment by {self.user.username}",
+            )
             comment.save()
             self.comments.append(comment)
-            another_comment = Comment(post=post, author=self.otheruser, text=f'another comment by {self.otheruser.username}')
+            another_comment = Comment(
+                post=post,
+                author=self.otheruser,
+                text=f"another comment by {self.otheruser.username}",
+            )
             another_comment.save()
             self.comments.append(another_comment)
-        
+
         test_list = [comment.post for comment in Comment.objects.all()]
         for post in self.posts:
             count = 0
@@ -55,7 +65,6 @@ class PostTestCase(TestCase):
                 if post == comment_post:
                     count += 1
             self.assertEqual(count, 3)
-        
 
 
 class TestCategoryCase(TestCase):

@@ -38,5 +38,3 @@ class Comment(models.Model):
 
     def __str__(self):
         return f"Comment: {self.author.username} said '{self.text[0:15]}'... about post {self.post.pk} titled {self.post.title}."
-
-

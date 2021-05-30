@@ -5,6 +5,7 @@ from .models import Category, Comment, Post
 class CommentInline(admin.TabularInline):
     model = Comment
 
+
 class CategoryInline(admin.TabularInline):
     model = Category.posts.through
 
@@ -16,8 +17,9 @@ class PostAdmin(admin.ModelAdmin):
 
 
 class CommentAdmin(admin.ModelAdmin):
-    list_display = ['author', 'text', 'created_time']
-    ordering = ['-created_time']
+    list_display = ["author", "text", "created_time"]
+    ordering = ["-created_time"]
+
 
 class CategoryAdmin(admin.ModelAdmin):
     list_display = ["name", "description"]
