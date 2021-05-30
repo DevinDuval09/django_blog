@@ -155,6 +155,15 @@ class FrontEndTestCase(TestCase):
             self.assertContains(resp, f"{author.username}: comment 1")
             self.assertContains(resp, f"{author2.username}: comment 2")
 
+    def test_add_comment(self):
+        author = User.objects.get(pk=1)
+        author2 = User.objects.get(pk=2)
+        for count in range(1, 6):
+            resp = self.client.get(f"/posts/{count}/add_comment")
+            self.assertNotContains(resp, "Author:")
+            self.assertNotContains(resp, "Post:")
+            self.assertContains(resp, "New comment:")
+
     def test_xss_attack(self):
         pk = 11
         resp = self.client.get(f"/posts/{pk}/")
