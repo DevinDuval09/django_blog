@@ -17,7 +17,7 @@ class PostAdmin(admin.ModelAdmin):
 
 
 class CommentAdmin(admin.ModelAdmin):
-    list_display = ["author", "text", "created_time"]
+    list_display = ["post", "author", "text", "created_time"]
     ordering = ["-created_time"]
 
 
@@ -30,4 +30,4 @@ class CategoryAdmin(admin.ModelAdmin):
 
 admin.site.register(Post, PostAdmin)
 admin.site.register(Category, CategoryAdmin)
-admin.site.register(Comment)
+admin.site.register(Comment, CommentAdmin)
