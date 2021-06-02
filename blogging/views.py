@@ -30,7 +30,7 @@ def add_comment(request, *args, **kwargs):
     if form.is_valid():
         model_instance = form.save(commit=False)
         model_instance.save()
-        return redirect("/")
+        return redirect(f"/posts/{kwargs['pk']}/comments")
     else:
         form = CommentForm(initial={"post": kwargs["pk"], "author": request.user})
         return render(
