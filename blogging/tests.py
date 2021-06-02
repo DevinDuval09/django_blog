@@ -154,15 +154,35 @@ class FrontEndTestCase(TestCase):
             resp = self.client.get(f"/posts/{count}/")
             self.assertContains(resp, f"{author.username}: comment 1")
             self.assertContains(resp, f"{author2.username}: comment 2")
-
+    
     def test_add_comment(self):
-        author = User.objects.get(pk=1)
-        author2 = User.objects.get(pk=2)
+        author = User.objects.create(username="testuser")
+        author.set_password("12345")
+        author.save()
+        login = self.client.login(username="testuser", password="12345")
+        self.assertTrue(login)
         for count in range(1, 6):
-            resp = self.client.get(f"/posts/{count}/add_comment")
+            text = f"Another {count} comment."
+            comment = {"author": author.pk, "post": count, "text": text}
+            post = self.client.post(f"/posts/{count}/", data=comment, follow=True)
+            self.assertEqual(post.status_code, 200)
+            self.assertContains(post, text)
+
+    def test_add_comment_on_comment_page(self):
+        author = User.objects.create(username="testuser")
+        author.set_password("12345")
+        author.save()
+        login = self.client.login(username="testuser", password="12345")
+        self.assertTrue(login)
+        for count in range(1, 6):
+            comment = {"author": author.pk, "post": count, "text": "testuser's comment."}
+            resp = self.client.get(f"/posts/{count}/comments")
             self.assertNotContains(resp, "Author:")
             self.assertNotContains(resp, "Post:")
             self.assertContains(resp, "New comment:")
+            post = self.client.post(f"/posts/{count}/comments", data=comment, follow=True)
+            print(post.content)
+            self.assertContains(post, "testuser: testuser's comment.")
 
     def test_xss_attack(self):
         pk = 11
