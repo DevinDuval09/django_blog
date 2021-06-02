@@ -10,6 +10,6 @@ class CommentForm(ModelForm):
         widgets = {
             "author": TextInput({"readonly": True, "hidden": True}),
             "post": TextInput({"readonly": True, "hidden": True}),
-            "text": Textarea()
+            "text": Textarea(),
         }
         labels = {"text": ("New comment: "), "author": (""), "post": ("")}
