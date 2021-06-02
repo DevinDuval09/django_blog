@@ -1,6 +1,7 @@
 import datetime
 
 from django.db.models.query import FlatValuesListIterable
+from django.shortcuts import redirect
 from .models import Post, Category, Comment
 from django.test import TestCase, TransactionTestCase, LiveServerTestCase
 from django.db.transaction import TransactionManagementError
@@ -182,6 +183,13 @@ class FrontEndTestCase(TestCase):
             self.assertContains(resp, "New comment:")
             post = self.client.post(f"/posts/{count}/comments", data=comment, follow=True)
             self.assertContains(post, "testuser: testusers comment.")
+    
+    def test_add_comment_login_redirect(self):
+        login = self.client.login(username="admin", password="?")
+        comment = {"author": 1, "post": 1, "text": "This should fail."}
+        post = self.client.post("/posts/1/", data=comment, follow=True)
+        self.assertFalse(login)
+        self.assertContains(post, "My Blog Login")
 
     def test_xss_attack(self):
         pk = 11
