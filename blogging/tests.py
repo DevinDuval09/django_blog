@@ -175,14 +175,13 @@ class FrontEndTestCase(TestCase):
         login = self.client.login(username="testuser", password="12345")
         self.assertTrue(login)
         for count in range(1, 6):
-            comment = {"author": author.pk, "post": count, "text": "testuser's comment."}
+            comment = {"author": author.pk, "post": count, "text": "testusers comment."}
             resp = self.client.get(f"/posts/{count}/comments")
             self.assertNotContains(resp, "Author:")
             self.assertNotContains(resp, "Post:")
             self.assertContains(resp, "New comment:")
             post = self.client.post(f"/posts/{count}/comments", data=comment, follow=True)
-            print(post.content)
-            self.assertContains(post, "testuser: testuser's comment.")
+            self.assertContains(post, "testuser: testusers comment.")
 
     def test_xss_attack(self):
         pk = 11
