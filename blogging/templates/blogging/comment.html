@@ -1,8 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
-    <h1>{{post}}</h1>
-    <p>{{post.text}}</p>
-    
+    <h1>{{post}} Comments</h1>
     <ul class="comments">
         {% for comment in post.comments.all %}
         <li> {{ comment }} </li>
