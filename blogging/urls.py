@@ -13,7 +13,7 @@ from .views import (
 urlpatterns = [
     path("", PostPostedList.as_view(), name="post_index"),
     path("posts/<int:pk>/", PostDetail.as_view(), name="post_detail"),
-    path("posts/<int:pk>/add_comment", add_comment, name="add_comment"),
+    path("posts/<int:pk>/comments", add_comment, name="comments"),
     path("posts/<str:username>/", PostUserList.as_view(), name="post_user"),
     path(
         "posts/<str:username>/published/",
