@@ -1,5 +1,9 @@
 from django.contrib import admin
-from .models import Category, Post
+from .models import Category, Comment, Post
+
+
+class CommentInline(admin.TabularInline):
+    model = Comment
 
 
 class CategoryInline(admin.TabularInline):
@@ -8,8 +12,14 @@ class CategoryInline(admin.TabularInline):
 
 class PostAdmin(admin.ModelAdmin):
     list_display = ["id", "title", "text", "post_date"]
-    inlines = [CategoryInline]
+    inlines = [CategoryInline, CommentInline]
     ordering = ["title"]
+
+
+class CommentAdmin(admin.ModelAdmin):
+    list_display = ["post", "author", "text", "created_time"]
+    ordering = ["-created_time"]
+    exclude = ["post"]
 
 
 class CategoryAdmin(admin.ModelAdmin):
@@ -21,3 +31,4 @@ class CategoryAdmin(admin.ModelAdmin):
 
 admin.site.register(Post, PostAdmin)
 admin.site.register(Category, CategoryAdmin)
+admin.site.register(Comment, CommentAdmin)

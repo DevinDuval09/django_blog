@@ -1,7 +1,8 @@
 import datetime
 
 from django.db.models.query import FlatValuesListIterable
-from .models import Post, Category
+from django.shortcuts import redirect
+from .models import Post, Category, Comment
 from django.test import TestCase, TransactionTestCase, LiveServerTestCase
 from django.db.transaction import TransactionManagementError
 from django.contrib.auth.models import User
@@ -21,30 +22,51 @@ class PostTestCase(TestCase):
         p3 = Post(title="This is a third title", text="third", author=self.user)
         p4 = Post(title="Excluded from update", text="fourth", author=self.otheruser)
         self.posts = [p1, p2, p3, p4]
+        self.comments = []
         for post in self.posts:
             post.save()
+            comment = Comment(
+                post=post, author=post.author, text=f"{post.title} comment."
+            )
+            comment.save()
+            self.comments.append(comment)
 
     def test_string_repr(self):
         expected = "This is a title"
         actual = str(self.posts[0])
         self.assertEqual(expected, actual)
 
-    def test_update_user_posts(self):
-        # self.assertEqual(self.posts[1].text, 'second')
-        # request = HttpRequest()
-        # request.method = 'GET'
-        # request.path = '/posts/admin/test'
-        # response = update_user_posts(request, 'admin', 'test')
-        # #print(response.content)
-        # self.assertNotIn(b'Excluded from update', response.content)
-        # self.assertNotIn(b'second', response.content)
-        # self.assertIn(b'test', response.content)
-        # request.path = '/posts/bob/test'
-        # self.assertRaises(TransactionManagementError, update_user_posts, request, 'bob', 'test')
-        # with self.assertRaises(TransactionManagementError):
-        #     posts = Post.objects.select_for_update().filter()
-        #     print(posts)
-        pass
+    def test_comment_str(self):
+        for comment in self.comments:
+            post = comment.post
+            username = comment.author.username
+            self.assertEqual(f"{username}: {comment.text}", str(comment))
+            self.assertIn(post, self.posts)
+
+    def test_add_multiple_comments(self):
+        for post in self.posts:
+            comment = Comment(
+                post=post,
+                author=self.user,
+                text=f"another comment by {self.user.username}",
+            )
+            comment.save()
+            self.comments.append(comment)
+            another_comment = Comment(
+                post=post,
+                author=self.otheruser,
+                text=f"another comment by {self.otheruser.username}",
+            )
+            another_comment.save()
+            self.comments.append(another_comment)
+
+        test_list = [comment.post for comment in Comment.objects.all()]
+        for post in self.posts:
+            count = 0
+            for comment_post in test_list:
+                if post == comment_post:
+                    count += 1
+            self.assertEqual(count, 3)
 
 
 class TestCategoryCase(TestCase):
@@ -84,12 +106,17 @@ class FrontEndTestCase(TestCase):
         self.now = datetime.datetime.utcnow().replace(tzinfo=utc)
         self.timedelta = datetime.timedelta(15)
         author = User.objects.get(pk=1)
+        author2 = User.objects.get(pk=2)
         for count in range(1, 11):
             post = Post(title=f"Post {count} Title", text="foo", author=author)
             if count < 6:
                 pubdate = self.now - self.timedelta * count
                 post.post_date = pubdate
+                comment1 = Comment(post=post, author=author, text="comment 1")
+                comment2 = Comment(post=post, author=author2, text="comment 2")
             post.save()
+            comment1.save()
+            comment2.save()
         count = 11
         xss_attack = Post(
             title=f"Post {count} Title",
@@ -120,6 +147,49 @@ class FrontEndTestCase(TestCase):
                 self.assertContains(resp, title)
             else:
                 self.assertEqual(resp.status_code, 404)
+
+    def test_comments(self):
+        author = User.objects.get(pk=1)
+        author2 = User.objects.get(pk=2)
+        for count in range(1, 6):
+            resp = self.client.get(f"/posts/{count}/")
+            self.assertContains(resp, f"{author.username}: comment 1")
+            self.assertContains(resp, f"{author2.username}: comment 2")
+    
+    def test_add_comment(self):
+        author = User.objects.create(username="testuser")
+        author.set_password("12345")
+        author.save()
+        login = self.client.login(username="testuser", password="12345")
+        self.assertTrue(login)
+        for count in range(1, 6):
+            text = f"Another {count} comment."
+            comment = {"author": author.pk, "post": count, "text": text}
+            post = self.client.post(f"/posts/{count}/", data=comment, follow=True)
+            self.assertEqual(post.status_code, 200)
+            self.assertContains(post, text)
+
+    def test_add_comment_on_comment_page(self):
+        author = User.objects.create(username="testuser")
+        author.set_password("12345")
+        author.save()
+        login = self.client.login(username="testuser", password="12345")
+        self.assertTrue(login)
+        for count in range(1, 6):
+            comment = {"author": author.pk, "post": count, "text": "testusers comment."}
+            resp = self.client.get(f"/posts/{count}/comments")
+            self.assertNotContains(resp, "Author:")
+            self.assertNotContains(resp, "Post:")
+            self.assertContains(resp, "New comment:")
+            post = self.client.post(f"/posts/{count}/comments", data=comment, follow=True)
+            self.assertContains(post, "testuser: testusers comment.")
+    
+    def test_add_comment_login_redirect(self):
+        login = self.client.login(username="admin", password="?")
+        comment = {"author": 1, "post": 1, "text": "This should fail."}
+        post = self.client.post("/posts/1/", data=comment, follow=True)
+        self.assertFalse(login)
+        self.assertContains(post, "My Blog Login")
 
     def test_xss_attack(self):
         pk = 11
