@@ -26,5 +26,5 @@ urlpatterns = [
         GenericSortedList.as_view(),
         name="post_query",
     ),
-    path("register", create_user, name="create_user"),
+    path("register/", create_user, name="create_user"),
 ]
