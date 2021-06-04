@@ -8,6 +8,7 @@ from .views import (
     PostUserPublishedList,
     GenericSortedList,
     add_comment,
+    create_user,
 )
 
 urlpatterns = [
@@ -25,4 +26,5 @@ urlpatterns = [
         GenericSortedList.as_view(),
         name="post_query",
     ),
+    path("register/", create_user, name="create_user"),
 ]

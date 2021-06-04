@@ -1,17 +1,10 @@
-from django.db.models import query
-from django.db.models.query import QuerySet
-from django.http.response import HttpResponse
-from django.http.request import HttpRequest
+from django.http.response import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, redirect
-from django.http import Http404
 from .models import Post
-from django.db import transaction
-from django.template import loader
-from django.utils import timezone
 from django.views.generic.list import ListView
 from django.views.generic.detail import DetailView
-from .forms import CommentForm
-from django.views.decorators.csrf import csrf_protect
+from .forms import CommentForm, NewUserForm
+from django.contrib.auth import login
 
 
 def stub_view(request, *args, **kwargs):
@@ -40,6 +33,18 @@ def add_comment(request, *args, **kwargs):
         )
 
 
+def create_user(request, *args, **kwargs):
+    form = NewUserForm(request.POST)
+    redirect_page = request.POST.get("detail", "/")
+    if form.is_valid():
+        user = form.save(commit=False)
+        user.save()
+        login(request, user)
+        return HttpResponseRedirect(redirect_to=redirect_page)
+    else:
+        return render(request, "new_user.html", {"form": form})
+
+
 class PostListAllView(ListView):
     model = Post
     template_name = "blogging/list.html"
@@ -64,6 +69,7 @@ class PostDetail(DetailView):
     def post(self, request, *args, **kwargs):
         if request.user.id is None:
             return redirect("/login/")
+
         form = CommentForm(
             {
                 "post": request.POST.get("post"),

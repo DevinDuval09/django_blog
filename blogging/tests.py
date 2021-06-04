@@ -155,7 +155,7 @@ class FrontEndTestCase(TestCase):
             resp = self.client.get(f"/posts/{count}/")
             self.assertContains(resp, f"{author.username}: comment 1")
             self.assertContains(resp, f"{author2.username}: comment 2")
-    
+
     def test_add_comment(self):
         author = User.objects.create(username="testuser")
         author.set_password("12345")
@@ -181,9 +181,11 @@ class FrontEndTestCase(TestCase):
             self.assertNotContains(resp, "Author:")
             self.assertNotContains(resp, "Post:")
             self.assertContains(resp, "New comment:")
-            post = self.client.post(f"/posts/{count}/comments", data=comment, follow=True)
+            post = self.client.post(
+                f"/posts/{count}/comments", data=comment, follow=True
+            )
             self.assertContains(post, "testuser: testusers comment.")
-    
+
     def test_add_comment_login_redirect(self):
         login = self.client.login(username="admin", password="?")
         comment = {"author": 1, "post": 1, "text": "This should fail."}
@@ -214,3 +216,27 @@ class FrontEndTestCase(TestCase):
         resp = self.client.get(url)
         for x in range(1, 12):
             self.assertContains(resp, f"Post {x} Title")
+
+    def test_create_user(self):
+        url = "/register/"
+        resp = self.client.get(url)
+        self.assertContains(resp, "Create New User")
+        self.assertContains(resp, "Email address(optional)")
+
+    def test_create_user_redirect(self):
+        url = "/register"
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 301)
+
+    def test_create_user_post(self):
+        user_data = {
+            "username": "testuser",
+            "email": "abc123@gmail.com",
+            "password1": "abcDef123456",
+            "password2": "abcDef123456",
+        }
+        post = self.client.post("/register/", data=user_data, follow=True)
+        user = User.objects.get(username="testuser")
+        self.assertEqual(post.status_code, 200)
+        self.assertEqual(user.username, "testuser")
+        self.assertEqual(user.pk, 3)
