@@ -14,12 +14,15 @@
     <li>{{ category }}</li>
     {% endfor %}
 </ul>
+{% if user.pk == post.author.id %}
+    <a href="{% url 'edit_post' post.pk %}"> Edit</a>
+{% endif %}
 <a href="{% url 'comments' post.pk %}">Comments</a>
-<ul class="comments">
+<p><ul class="comments">
     {% for comment in post.comments.all %}
     <li> {{ comment }} </li>
     {% endfor %}
-</ul>
+</ul></p>
 <form name="new_comment" method="post">
     {% csrf_token %}
      {{ form }}
