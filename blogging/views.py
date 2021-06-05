@@ -97,6 +97,14 @@ class PostDetail(DetailView):
     queryset = Post.objects.all()
     template_name = "blogging/detail.html"
 
+    def dispatch(self, request, *args, **kwargs):
+        post = Post.objects.get(pk=kwargs["pk"])
+        if request.user.id is None and post.post_date is None:
+            return redirect("/login/")
+        elif request.user.id != post.author.id and post.post_date is None:
+            return HttpResponse("Page not found", status=404)
+        return super().dispatch(request, *args, **kwargs)
+
     def get_context_data(self, **kwargs):
         context = super(PostDetail, self).get_context_data(**kwargs)
         context["form"] = CommentForm(
