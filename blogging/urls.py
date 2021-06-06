@@ -16,8 +16,8 @@ from .views import (
 urlpatterns = [
     path("", PostPostedList.as_view(), name="post_index"),
     path("posts/<int:pk>/", PostDetail.as_view(), name="post_detail"),
-    path("posts/<int:pk>/comments", add_comment, name="comments"),
-    path("posts/<int:pk>/edit", edit_post, name="edit_post"),
+    path("posts/<int:pk>/comments/", add_comment, name="comments"),
+    path("posts/<int:pk>/edit/", edit_post, name="edit_post"),
     path("posts/new_post/", create_post, name="create_post"),
     path("posts/<str:username>/", PostUserList.as_view(), name="post_user"),
     path(
