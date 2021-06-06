@@ -1,6 +1,7 @@
 import datetime
 
 from django.db.models.query import FlatValuesListIterable
+from django.http.response import Http404
 from django.shortcuts import redirect
 from .models import Post, Category, Comment
 from django.test import TestCase, TransactionTestCase, LiveServerTestCase
@@ -103,17 +104,23 @@ class FrontEndTestCase(TestCase):
     ]
 
     def setUp(self):
+        self.logged_in_menu = (
+            "New Post",
+            "Unpublished Posts",
+            "Published Posts",
+            "logout",
+        )
         self.now = datetime.datetime.utcnow().replace(tzinfo=utc)
         self.timedelta = datetime.timedelta(15)
-        author = User.objects.get(pk=1)
-        author2 = User.objects.get(pk=2)
+        self.author = User.objects.get(pk=1)
+        self.author2 = User.objects.get(pk=2)
         for count in range(1, 11):
-            post = Post(title=f"Post {count} Title", text="foo", author=author)
+            post = Post(title=f"Post {count} Title", text="foo", author=self.author)
             if count < 6:
                 pubdate = self.now - self.timedelta * count
                 post.post_date = pubdate
-                comment1 = Comment(post=post, author=author, text="comment 1")
-                comment2 = Comment(post=post, author=author2, text="comment 2")
+                comment1 = Comment(post=post, author=self.author, text="comment 1")
+                comment2 = Comment(post=post, author=self.author2, text="comment 2")
             post.save()
             comment1.save()
             comment2.save()
@@ -121,7 +128,7 @@ class FrontEndTestCase(TestCase):
         xss_attack = Post(
             title=f"Post {count} Title",
             text='foo <script> alert("This was successful!"); </script>',
-            author=author,
+            author=self.author,
             post_date=self.now - self.timedelta * count,
         )
         xss_attack.save()
@@ -141,12 +148,12 @@ class FrontEndTestCase(TestCase):
         for count in range(1, 11):
             title = f"Post {count} Title"
             post = Post.objects.get(title=title)
-            resp = self.client.get(f"/posts/{post.pk}/")
+            resp = self.client.get(f"/posts/{post.pk}/", follow=True)
             if count < 6:
                 self.assertEqual(resp.status_code, 200)
                 self.assertContains(resp, title)
             else:
-                self.assertEqual(resp.status_code, 404)
+                self.assertContains(resp, "My Blog Login")
 
     def test_comments(self):
         author = User.objects.get(pk=1)
@@ -177,12 +184,12 @@ class FrontEndTestCase(TestCase):
         self.assertTrue(login)
         for count in range(1, 6):
             comment = {"author": author.pk, "post": count, "text": "testusers comment."}
-            resp = self.client.get(f"/posts/{count}/comments")
+            resp = self.client.get(f"/posts/{count}/comments/")
             self.assertNotContains(resp, "Author:")
             self.assertNotContains(resp, "Post:")
             self.assertContains(resp, "New comment:")
             post = self.client.post(
-                f"/posts/{count}/comments", data=comment, follow=True
+                f"/posts/{count}/comments/", data=comment, follow=True
             )
             self.assertContains(post, "testuser: testusers comment.")
 
@@ -240,3 +247,109 @@ class FrontEndTestCase(TestCase):
         self.assertEqual(post.status_code, 200)
         self.assertEqual(user.username, "testuser")
         self.assertEqual(user.pk, 3)
+
+    def test_logged_out_views(self):
+        resp = self.client.get("/")
+        for option in self.logged_in_menu:
+            self.assertNotContains(resp, option)
+        resp = self.client.get("/posts/5/")
+        self.assertContains(resp, "Post 5 Title")
+        self.assertNotContains(resp, "Edit")
+
+    def test_logged_in_home_view(self):
+        self.author.set_password("12345")
+        self.author.save()
+        login = self.client.login(username="admin", password="12345")
+        self.assertTrue(login)
+        home = self.client.get("/")
+        for option in self.logged_in_menu:
+            self.assertContains(home, option)
+
+    def test_logged_in_post_view(self):
+        self.author.set_password("12345")
+        self.author.save()
+        login = self.client.login(username="admin", password="12345")
+        self.assertTrue(login)
+        for count in range(1, 6):
+            post_view = self.client.get(f"/posts/{count}/")
+            self.assertContains(post_view, "Edit")
+
+    def test_logged_in_wrong_user_view(self):
+        self.author2.set_password("54321")
+        self.author2.save()
+        login = self.client.login(username="noname", password="54321")
+        self.assertTrue(login)
+        for count in range(1, 6):
+            post_view = self.client.get(f"/posts/{count}/")
+            self.assertNotContains(post_view, "Edit")
+        for count in range(6, 11):
+            post_view = self.client.get(f"/posts/{count}/", follow=True)
+            self.assertContains(post_view, "Page Not Found")
+            self.assertEqual(200, post_view.status_code)
+
+    def test_new_post_post(self):
+        self.author.set_password("12345")
+        self.author.save()
+        login = self.client.login(username="admin", password="12345")
+        self.assertTrue(login)
+        title = "Test Post"
+        text = "Test post text"
+        pubdate = datetime.datetime.utcnow().strftime("%Y-%m-%d")
+
+        data = {
+            "author": self.author.pk,
+            "title": title,
+            "text": text,
+            "post_date": pubdate,
+        }
+        post = self.client.post("/posts/new_post/", data=data, follow=True)
+        found_post = Post.objects.get(title="Test Post")
+        self.assertEqual(found_post.title, title)
+        self.assertEqual(found_post.text, text)
+        self.assertEqual(found_post.post_date.strftime("%Y-%m-%d"), pubdate)
+        self.assertEqual(post.status_code, 200)
+
+    def test_edit_post_post(self):
+        pk = 6
+        self.author.set_password("12345")
+        self.author.save()
+        login = self.client.login(username="admin", password="12345")
+        self.assertTrue(login)
+        pubdate = datetime.datetime.utcnow().strftime("%Y-%m-%d")
+        post_obj = Post.objects.get(pk=pk)
+        data = {
+            "author": post_obj.author.pk,
+            "post_date": pubdate,
+            "title": "A New Title",
+            "text": "Some new text.",
+        }
+        post = self.client.post(f"/posts/{pk}/edit/", data=data, follow=True)
+        self.assertEqual(post.status_code, 200)
+        post_obj = Post.objects.get(pk=pk)
+        self.assertEqual(post_obj.post_date.strftime("%Y-%m-%d"), pubdate)
+        self.assertEqual(post_obj.title, "A New Title")
+        self.assertEqual(post_obj.text, "Some new text.")
+
+    def test_published_posts(self):
+        self.author.set_password("12345")
+        self.author.save()
+        login = self.client.login(username="admin", password="12345")
+        self.assertTrue(login)
+        pub_list = self.client.get(f"/posts/{self.author.username}/published/")
+        self.assertEqual(pub_list.status_code, 200)
+        for count in range(1, 6):
+            self.assertContains(pub_list, f"Post {count} Title")
+        for count in range(6, 11):
+            self.assertNotContains(pub_list, f"Post {count} Title")
+
+    def test_unpublished_posts(self):
+        self.author.set_password("12345")
+        self.author.save()
+        login = self.client.login(username="admin", password="12345")
+        self.assertTrue(login)
+        pub_list = self.client.get(f"/posts/{self.author.username}/unpublished/")
+        self.assertEqual(pub_list.status_code, 200)
+        for count in range(1, 6):
+            self.assertNotContains(pub_list, f"Post {count} Title")
+        for count in range(6, 11):
+            self.assertContains(pub_list, f"Post {count} Title")
