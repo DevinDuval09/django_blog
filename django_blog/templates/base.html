@@ -10,7 +10,10 @@
             <ul id="control-bar">
                 {% if user.is_authenticated %}
                     {% if user.is_staff %}<li><a href="{% url 'admin:index' %}">admin</a></li>{% endif %}
-                    <li><a href="{% url 'logout' %}">logout</a></li>
+                        <li><a href="{% url 'create_post' %}">New Post</a></li>
+                        <li><a href="{% url 'user_not_published' request.user.id %}">Unpublished Posts</a></li>
+                        <li><a href="{% url 'user_published' request.user.username %}">Published Posts</a></li>
+                            <li><a href="{% url 'logout' %}">logout</a></li>
                 {% else %}
                     <li><a href="{% url 'login' %}">login</a></li>
                 {% endif %}

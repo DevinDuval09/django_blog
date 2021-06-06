@@ -1,6 +1,19 @@
-from django.forms import ModelForm, TextInput, Textarea
-from .models import Comment
+from django.db.models.base import Model
+from django.forms import ModelForm, TextInput, Textarea, DateInput
+from .models import Comment, Post
 from django.contrib.auth.forms import UserCreationForm
+
+
+class PostForm(ModelForm):
+    class Meta:
+        model = Post
+        fields = ["title", "text", "author", "post_date"]
+        widgets = {
+            "title": TextInput(),
+            "text": Textarea(),
+            "author": TextInput({"hidden": True, "readonly": True}),
+            "post_date": DateInput(attrs={"class": "datepicker"}),
+        }
 
 
 class CommentForm(ModelForm):

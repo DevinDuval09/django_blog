@@ -1,10 +1,59 @@
 from django.http.response import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, redirect
+from django.urls import reverse
 from .models import Post
 from django.views.generic.list import ListView
 from django.views.generic.detail import DetailView
-from .forms import CommentForm, NewUserForm
+from .forms import CommentForm, NewUserForm, PostForm
 from django.contrib.auth import login
+
+
+def create_post(request, *args, **kwargs):
+    if request.user.id is None:
+        redirect("/login/")
+    if request.method == "GET":
+        form = PostForm(initial={"author": request.user.id})
+        return render(request, "blogging/new_post.html", {"form": form})
+    if request.method == "POST":
+        form = PostForm(request.POST)
+        post_instance = form.save(commit=False)
+        if form.is_valid():
+            post_instance.save()
+        else:
+            return stub_view(request, post_instance=post_instance)
+        return redirect(reverse("post_detail", args=[post_instance.pk]))
+    return stub_view(request, request_method=request.method, request=request)
+
+
+def edit_post(request, *args, **kwargs):
+    post = Post.objects.get(pk=kwargs["pk"])
+    if request.user.id is None:
+        return redirect("/login/")
+    if request.user.id != post.author.id:
+        return redirect("/")
+    if request.method == "GET":
+        form = PostForm(
+            instance=post,
+            initial={
+                "title": post.title,
+                "text": post.text,
+                "post_date": post.post_date,
+            },
+        )
+        return render(
+            request, "blogging/new_post.html", {"form": form, "title": "Edit Post"}
+        )
+    elif request.method == "POST":
+        form = PostForm(request.POST)
+        if form.is_valid():
+            updated_post = form.save(commit=False)
+            updated_post.pk = kwargs["pk"]
+            updated_post.save(update_fields=["title", "text", "post_date"])
+            return redirect(reverse("post_detail", args=[post.pk]))
+        else:
+            return stub_view(request, post=form, errors=form.errors)
+    else:
+        return stub_view(request, method=request.method)
 
 
 def stub_view(request, *args, **kwargs):
@@ -20,6 +69,8 @@ def stub_view(request, *args, **kwargs):
 
 def add_comment(request, *args, **kwargs):
     form = CommentForm(request.POST)
+    if request.user.id is None:
+        return redirect("/login/")
     if form.is_valid():
         model_instance = form.save(commit=False)
         model_instance.save()
@@ -56,8 +107,16 @@ class PostPostedList(ListView):
 
 
 class PostDetail(DetailView):
-    queryset = Post.objects.exclude(post_date=None)
+    queryset = Post.objects.all()
     template_name = "blogging/detail.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        post = Post.objects.get(pk=kwargs["pk"])
+        if request.user.id is None and post.post_date is None:
+            return redirect("/login/")
+        elif request.user.id != post.author.id and post.post_date is None:
+            return HttpResponse("Page Not Found", status=200)
+        return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super(PostDetail, self).get_context_data(**kwargs)
@@ -97,9 +156,20 @@ class PostUserPublishedList(ListView):
 
     def get_queryset(self):
         return (
-            Post.objects.filter(author__username=self.kwargs["username"])
+            Post.objects.filter(author__pk=self.request.user.id)
             .exclude(post_date=None)
             .order_by("-post_date")
+        )
+
+
+class PostUserNotPublished(ListView):
+    template_name = "blogging/list.html"
+
+    def get_queryset(self):
+        return (
+            Post.objects.filter(author__pk=self.request.user.id)
+            .filter(post_date__isnull=True)
+            .order_by("-created_date")
         )
 
 
