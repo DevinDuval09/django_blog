@@ -5,7 +5,6 @@ from django.contrib.auth.forms import UserCreationForm
 
 
 class PostForm(ModelForm):
-
     class Meta:
         model = Post
         fields = ["title", "text", "author", "post_date"]
@@ -15,7 +14,6 @@ class PostForm(ModelForm):
             "author": TextInput({"hidden": True, "readonly": True}),
             "post_date": DateInput(attrs={"class": "datepicker"}),
         }
-
 
 
 class CommentForm(ModelForm):

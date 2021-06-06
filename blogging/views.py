@@ -13,9 +13,7 @@ def create_post(request, *args, **kwargs):
         redirect("/login/")
     if request.method == "GET":
         form = PostForm(initial={"author": request.user.id})
-        return render(request,
-                    "blogging/new_post.html",
-                    {"form": form})
+        return render(request, "blogging/new_post.html", {"form": form})
     if request.method == "POST":
         form = PostForm(request.POST)
         post_instance = form.save(commit=False)
@@ -24,7 +22,7 @@ def create_post(request, *args, **kwargs):
         else:
             return stub_view(request, post_instance=post_instance)
         return redirect(reverse("post_detail", args=[post_instance.pk]))
-    return stub_view(request, request_method=request.method, request=request )
+    return stub_view(request, request_method=request.method, request=request)
 
 
 def edit_post(request, *args, **kwargs):
@@ -34,8 +32,17 @@ def edit_post(request, *args, **kwargs):
     if request.user.id != post.author.id:
         return redirect("/")
     if request.method == "GET":
-        form = PostForm(instance=post, initial={"title": post.title, "text": post.text, "post_date": post.post_date})
-        return render(request, "blogging/new_post.html", {"form": form, "title": "Edit Post"})
+        form = PostForm(
+            instance=post,
+            initial={
+                "title": post.title,
+                "text": post.text,
+                "post_date": post.post_date,
+            },
+        )
+        return render(
+            request, "blogging/new_post.html", {"form": form, "title": "Edit Post"}
+        )
     elif request.method == "POST":
         form = PostForm(request.POST)
         if form.is_valid():
@@ -153,6 +160,7 @@ class PostUserPublishedList(ListView):
             .exclude(post_date=None)
             .order_by("-post_date")
         )
+
 
 class PostUserNotPublished(ListView):
     template_name = "blogging/list.html"
