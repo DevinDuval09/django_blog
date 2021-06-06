@@ -11,14 +11,20 @@ from django.contrib.auth import login
 def create_post(request, *args, **kwargs):
     if request.user.id is None:
         redirect("/login/")
-    form = PostForm(initial={"author": request.user.id})
-    if form.is_valid():
+    if request.method == "GET":
+        form = PostForm(initial={"author": request.user.id})
+        return render(request,
+                    "blogging/new_post.html",
+                    {"form": form})
+    if request.method == "POST":
+        form = PostForm(request.POST)
         post_instance = form.save(commit=False)
-        post_instance.save()
+        if form.is_valid():
+            post_instance.save()
+        else:
+            return stub_view(request, post_instance=post_instance)
         return redirect(reverse("post_detail", args=[post_instance.pk]))
-    return render(request,
-                "blogging/new_post.html",
-                {"form": form})
+    return stub_view(request, request_method=request.method, request=request )
 
 
 def edit_post(request, *args, **kwargs):
@@ -102,7 +108,7 @@ class PostDetail(DetailView):
         if request.user.id is None and post.post_date is None:
             return redirect("/login/")
         elif request.user.id != post.author.id and post.post_date is None:
-            return HttpResponse("Page not found", status=404)
+            return HttpResponse("Page Not Found", status=200)
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
