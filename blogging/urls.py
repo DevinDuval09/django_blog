@@ -26,7 +26,7 @@ urlpatterns = [
         name="user_published",
     ),
     path(
-        "posts/<str:username>/unpublished",
+        "posts/<str:username>/unpublished/",
         PostUserNotPublished.as_view(),
         name="user_not_published",
     ),
